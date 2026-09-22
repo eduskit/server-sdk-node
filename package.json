@@ -1,6 +1,6 @@
 {
   "name": "@eduskit/server-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Eduskit B-end server SDK for classroom and whiteboard APIs",
   "repository": {
     "type": "git",
@@ -19,7 +19,7 @@
       "default": "./dist/src/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist/src"],
   "scripts": {
     "build": "tsc",
     "test": "tsc && node --test dist/test/*.test.js"
@@ -27,7 +27,7 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^22.13.0",
     "typescript": "^5.7.3"
