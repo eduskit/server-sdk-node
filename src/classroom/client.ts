@@ -1,3 +1,4 @@
+import { withQuery } from '../http.js';
 import type { SideClientOptions } from '../config.js';
 import { encodePath, HttpTransport } from '../http.js';
 import {
@@ -101,15 +102,15 @@ class ClassroomMembersApi {
   add(classroomId: string, input: AddMemberInput): Promise<Membership> {
     return this.http.request(
       'POST',
-      `/v1/classrooms/${encodePath(classroomId)}/members`,
-      input,
+      "/v1/classrooms/members",
+      { ...input, classroomId: classroomId },
     );
   }
 
   list(classroomId: string): Promise<MemberList> {
     return this.http.request(
       'GET',
-      `/v1/classrooms/${encodePath(classroomId)}/members`,
+      withQuery("/v1/classrooms/members", { classroomId: classroomId }),
     );
   }
 
@@ -119,8 +120,8 @@ class ClassroomMembersApi {
   ): Promise<ReplaceStudentsResult> {
     return this.http.request(
       'PUT',
-      `/v1/classrooms/${encodePath(classroomId)}/members/students`,
-      input,
+      "/v1/classrooms/members/students",
+      { ...input, classroomId: classroomId },
     );
   }
 }
@@ -131,7 +132,7 @@ class ClassroomPermissionsApi {
   get(classroomId: string, eduUserId: string): Promise<Permissions> {
     return this.http.request(
       'GET',
-      `/v1/classrooms/${encodePath(classroomId)}/members/${encodePath(eduUserId)}/permissions`,
+      withQuery("/v1/classrooms/members/permissions", { classroomId: classroomId, eduUserId: eduUserId }),
     );
   }
 
@@ -142,8 +143,8 @@ class ClassroomPermissionsApi {
   ): Promise<Permissions> {
     return this.http.request(
       'POST',
-      `/v1/classrooms/${encodePath(classroomId)}/members/${encodePath(eduUserId)}/permissions`,
-      input,
+      "/v1/classrooms/members/permissions",
+      { ...input, classroomId: classroomId, eduUserId: eduUserId },
     );
   }
 
@@ -155,7 +156,7 @@ class ClassroomPermissionsApi {
   ): Promise<Permissions> {
     return this.http.request(
       'DELETE',
-      `/v1/classrooms/${encodePath(classroomId)}/members/${encodePath(eduUserId)}/permissions/${encodePath(permission)}`,
+      withQuery("/v1/classrooms/members/permissions", { classroomId: classroomId, eduUserId: eduUserId, permission: permission }),
       input,
     );
   }
@@ -167,7 +168,7 @@ class ClassroomCoursewaresApi {
   list(classroomId: string): Promise<CoursewareList> {
     return this.http.request(
       'GET',
-      `/v1/classrooms/${encodePath(classroomId)}/coursewares`,
+      withQuery("/v1/classrooms/coursewares", { classroomId: classroomId }),
     );
   }
 
@@ -177,8 +178,8 @@ class ClassroomCoursewaresApi {
   ): Promise<BindCoursewaresResult> {
     return this.http.request(
       'POST',
-      `/v1/classrooms/${encodePath(classroomId)}/coursewares`,
-      input,
+      "/v1/classrooms/coursewares",
+      { ...input, classroomId: classroomId },
     );
   }
 
@@ -188,7 +189,7 @@ class ClassroomCoursewaresApi {
   ): Promise<UnbindCoursewaresResult> {
     return this.http.request(
       'DELETE',
-      `/v1/classrooms/${encodePath(classroomId)}/coursewares`,
+      withQuery("/v1/classrooms/coursewares", { classroomId: classroomId }),
       input,
     );
   }
@@ -212,14 +213,14 @@ class ClassroomClassroomsApi {
   start(classroomId: string): Promise<Classroom> {
     return this.http.request(
       'POST',
-      `/v1/classrooms/${encodePath(classroomId)}/start`,
+      "/v1/classrooms/start", { classroomId: classroomId },
     );
   }
 
   end(classroomId: string): Promise<Classroom> {
     return this.http.request(
       'POST',
-      `/v1/classrooms/${encodePath(classroomId)}/end`,
+      "/v1/classrooms/end", { classroomId: classroomId },
     );
   }
 }

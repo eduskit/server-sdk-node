@@ -129,3 +129,11 @@ export class HttpTransport {
 export function encodePath(value: string): string {
   return encodeURIComponent(value);
 }
+
+/** Add identifier filters without losing existing pagination/search parameters. */
+export function withQuery(path: string, identifiers: Record<string, string>): string {
+  const [pathname, query = ''] = path.split('?');
+  const params = new URLSearchParams(query);
+  for (const [key, value] of Object.entries(identifiers)) params.set(key, value);
+  return `${pathname}?${params.toString()}`;
+}

@@ -60,11 +60,11 @@ test('classroom semantic methods hit the right paths', async () => {
   const paths = calls.map((c) => `${c.method} ${new URL(c.url).pathname}`);
   assert.deepEqual(paths, [
     'POST /v1/classrooms',
-    'POST /v1/classrooms/cls_1/start',
-    'POST /v1/classrooms/cls_1/members',
-    'PUT /v1/classrooms/cls_1/members/students',
-    'POST /v1/classrooms/cls_1/members/eu_s/permissions',
-    'POST /v1/classrooms/cls_1/coursewares',
+    'POST /v1/classrooms/start',
+    'POST /v1/classrooms/members',
+    'PUT /v1/classrooms/members/students',
+    'POST /v1/classrooms/members/permissions',
+    'POST /v1/classrooms/coursewares',
     'GET /v1/app/ui-config',
   ]);
 });
@@ -107,11 +107,11 @@ test('whiteboard recording and convert paths', async () => {
 
   const paths = calls.map((c) => `${c.method} ${new URL(c.url).pathname}`);
   assert.deepEqual(paths, [
-    'POST /v1/rooms/room_1/recording/start',
-    'POST /v1/recordings/rec_1/video-exports',
-    'POST /v1/rooms/room_1/captures',
+    'POST /v1/rooms/recording/start',
+    'POST /v1/recordings/video-exports',
+    'POST /v1/rooms/captures',
     'POST /v1/files/convert',
-    'GET /v1/files/convert/job_1',
+    'GET /v1/files/convert',
   ]);
   assert.equal((calls[2].body as { roomId: string }).roomId, 'room_1');
 });
@@ -146,4 +146,31 @@ test('unconfigured side throws immediately', () => {
     assert.equal(error.errorCode, 'SDK_CLIENT_NOT_CONFIGURED');
     return true;
   });
+});
+
+test('identifiers travel in encoded query or JSON while operation paths stay constant', async () => {
+  const { fetchImpl, calls } = mockFetch(() => ({ body: { code: 0, data: {} } }));
+  const sdk = new Eduskit({ client: creds, whiteboardClient: { ...creds, baseUrl: 'http://wb.test' }, fetch: fetchImpl });
+  const classroomId = 'class /?&';
+  const eduUserId = 'user +#';
+  await sdk.client.classrooms.permissions.get(classroomId, eduUserId);
+  const read = new URL(calls[0].url);
+  assert.equal(read.pathname, '/v1/classrooms/members/permissions');
+  assert.equal(read.searchParams.get('classroomId'), classroomId);
+  assert.equal(read.searchParams.get('eduUserId'), eduUserId);
+  assert.equal(calls[0].body, undefined);
+  const input = { permission: 'camera' as const, effect: 'grant' as const, operatorEduUserId: 'eu_teacher' };
+  await sdk.client.classrooms.permissions.set(classroomId, eduUserId, input);
+  assert.equal(new URL(calls[1].url).pathname, read.pathname);
+  assert.equal(new URL(calls[1].url).search, '');
+  assert.deepEqual(calls[1].body, { ...input, classroomId, eduUserId });
+  assert.equal('classroomId' in input, false);
+  await sdk.whiteboardClient.recordings.getVideoExport('record /&', 'job +?');
+  const job = new URL(calls[2].url);
+  assert.equal(job.pathname, '/v1/recordings/video-exports');
+  assert.equal(job.searchParams.get('recordingId'), 'record /&');
+  assert.equal(job.searchParams.get('jobId'), 'job +?');
+  await sdk.whiteboardClient.recordings.deleteMediaAsset('record /&', 'asset +?');
+  assert.equal(new URL(calls[3].url).pathname, '/v1/recordings/media-assets');
+  assert.equal(new URL(calls[3].url).searchParams.get('assetId'), 'asset +?');
 });

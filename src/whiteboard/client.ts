@@ -1,3 +1,4 @@
+import { withQuery } from '../http.js';
 import type { SideClientOptions } from '../config.js';
 import { encodePath, HttpTransport } from '../http.js';
 import {
@@ -61,8 +62,8 @@ class WhiteboardRoomsApi {
   ): Promise<AttachedRoomCourseware> {
     return this.http.request(
       'POST',
-      `/v1/rooms/${encodePath(roomId)}/coursewares`,
-      input,
+      "/v1/rooms/coursewares",
+      { ...input, roomId: roomId },
     );
   }
 }
@@ -113,30 +114,30 @@ class WhiteboardRecordingsApi {
   ): Promise<RecordingSession> {
     return this.http.request(
       'POST',
-      `/v1/rooms/${encodePath(roomId)}/recording/start`,
-      input,
+      "/v1/rooms/recording/start",
+      { ...input, roomId: roomId },
     );
   }
 
   stop(roomId: string, input: StopRecordingInput): Promise<RecordingSession> {
     return this.http.request(
       'POST',
-      `/v1/rooms/${encodePath(roomId)}/recording/stop`,
-      input,
+      "/v1/rooms/recording/stop",
+      { ...input, roomId: roomId },
     );
   }
 
   list(roomId: string): Promise<RecordingSession[]> {
     return this.http.request(
       'GET',
-      `/v1/rooms/${encodePath(roomId)}/recordings`,
+      withQuery("/v1/rooms/recordings", { roomId: roomId }),
     );
   }
 
   get(recordingId: string): Promise<RecordingSession> {
     return this.http.request(
       'GET',
-      `/v1/recordings/${encodePath(recordingId)}`,
+      withQuery("/v1/recordings", { recordingId: recordingId }),
     );
   }
 
@@ -146,15 +147,15 @@ class WhiteboardRecordingsApi {
   ): Promise<MediaAsset> {
     return this.http.request(
       'POST',
-      `/v1/recordings/${encodePath(recordingId)}/media-assets`,
-      input,
+      "/v1/recordings/media-assets",
+      { ...input, recordingId: recordingId },
     );
   }
 
   deleteMediaAsset(recordingId: string, assetId: string): Promise<MediaAsset> {
     return this.http.request(
       'DELETE',
-      `/v1/recordings/${encodePath(recordingId)}/media-assets/${encodePath(assetId)}`,
+      withQuery("/v1/recordings/media-assets", { recordingId: recordingId, assetId: assetId }),
     );
   }
 
@@ -164,8 +165,8 @@ class WhiteboardRecordingsApi {
   ): Promise<VideoExportJob> {
     return this.http.request(
       'POST',
-      `/v1/recordings/${encodePath(recordingId)}/video-exports`,
-      input,
+      "/v1/recordings/video-exports",
+      { ...input, recordingId: recordingId },
     );
   }
 
@@ -175,7 +176,7 @@ class WhiteboardRecordingsApi {
   ): Promise<VideoExportJob> {
     return this.http.request(
       'GET',
-      `/v1/recordings/${encodePath(recordingId)}/video-exports/${encodePath(jobId)}`,
+      withQuery("/v1/recordings/video-exports", { recordingId: recordingId, jobId: jobId }),
     );
   }
 }
@@ -186,15 +187,15 @@ class WhiteboardCapturesApi {
   create(roomId: string, input: CreateCaptureInput): Promise<Capture> {
     return this.http.request(
       'POST',
-      `/v1/rooms/${encodePath(roomId)}/captures`,
-      { roomId, ...input },
+      "/v1/rooms/captures",
+      { ...{ roomId, ...input }, roomId: roomId },
     );
   }
 
   list(roomId: string): Promise<Capture[]> {
     return this.http.request(
       'GET',
-      `/v1/rooms/${encodePath(roomId)}/captures`,
+      withQuery("/v1/rooms/captures", { roomId: roomId }),
     );
   }
 }
@@ -209,7 +210,7 @@ class WhiteboardFilesApi {
   getConvertJob(jobId: string): Promise<ConvertJob> {
     return this.http.request(
       'GET',
-      `/v1/files/convert/${encodePath(jobId)}`,
+      withQuery("/v1/files/convert", { jobId: jobId }),
     );
   }
 }
