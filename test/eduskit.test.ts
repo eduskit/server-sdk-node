@@ -88,6 +88,9 @@ test('whiteboard issueRoomToken signs locally without an HTTP request', async ()
   });
   assert.equal(token.appId, 'app_wb');
   assert.equal(token.token.split('.').length, 3);
+  const claims = JSON.parse(Buffer.from(token.token.split('.')[1]!, 'base64url').toString('utf8'));
+  assert.ok(Object.hasOwn(claims, 'access_generation'));
+  assert.equal(claims.access_generation, null);
   assert.equal(calls.length, 0);
 });
 
@@ -173,4 +176,41 @@ test('identifiers travel in encoded query or JSON while operation paths stay con
   await sdk.whiteboardClient.recordings.deleteMediaAsset('record /&', 'asset +?');
   assert.equal(new URL(calls[3].url).pathname, '/v1/recordings/media-assets');
   assert.equal(new URL(calls[3].url).searchParams.get('assetId'), 'asset +?');
+});
+
+
+test('private room SDK methods use authenticated server routes and preserve canonical IDs and CAS strings', async () => {
+  const {fetchImpl, calls} = mockFetch(() => ({body: {code: 0, data: {marker: 'server-result'}}}));
+  const sdk = new Eduskit({whiteboardClient: {...creds, baseUrl: 'http://wb.test'}, fetch: fetchImpl});
+  const rooms = sdk.whiteboardClient.rooms;
+  const outputs = [
+    await rooms.provisionPrivateRoom('room_a', 'assignment_a'),
+    await rooms.changePrivateRoomGrant('room_a', {userId: 'student_a', requestId: 'grant_a', expectedGeneration: '9223372036854775806', action: 'grant', role: 'participant'}),
+    await rooms.getPrivateRoomAccess('room_a', 'student_a'),
+    await rooms.issuePrivateRoomToken('room_a', {userId: 'student_a', role: 'participant', expiresIn: 600}),
+    await rooms.sealPrivateRoom('room_a'),
+    await rooms.createFrozenSnapshot('room_a', 'snapshot_a'),
+    await rooms.getFrozenSnapshot('room_a', 'snapshot_a'),
+    await rooms.getFrozenSnapshotDownload('room_a', 'snapshot_a'),
+    await rooms.initializePrivateWorkspace('room_a', 'assignment_a', null),
+    await rooms.initializePrivateWorkspace('room_a', 'assignment_a', 'snapshot_a'),
+    await rooms.getPrivateWorkspaceInitialization('room_a'),
+    await rooms.schedulePrivateRoomWrites('room_a','window_a','2026-10-02T00:00:00.000Z','2026-10-02T00:10:00.000Z'),
+  ];
+  assert.equal(calls.length, 12);
+  assert.deepEqual(calls.map(call => new URL(call.url).pathname), ['/v1/rooms/private',
+    '/v1/rooms/private/grants', '/v1/rooms/private/access/query', '/v1/rooms/private/token',
+    '/v1/rooms/private/seal', '/v1/rooms/private/snapshots', '/v1/rooms/private/snapshots/query', '/v1/rooms/private/snapshots/download',
+    '/v1/rooms/private/initializations', '/v1/rooms/private/initializations', '/v1/rooms/private/initializations/query', '/v1/rooms/private/write-window']);
+  for (const call of calls) {
+    assert.equal(call.method, 'POST'); assert.equal(call.headers['x-app-key'], creds.appKey);
+    assert.equal(call.headers['x-app-secret'], creds.appSecret); assert.equal((call.body as {roomId: string}).roomId, 'room_a');
+  }
+  assert.equal((calls[1].body as {expectedGeneration: string}).expectedGeneration, '9223372036854775806');
+  assert.equal('accessGeneration' in (calls[3].body as object), false);
+  assert.deepEqual(calls[8].body, {roomId: 'room_a', assignmentId: 'assignment_a', sourceSnapshotId: null});
+  assert.deepEqual(calls[9].body, {roomId: 'room_a', assignmentId: 'assignment_a', sourceSnapshotId: 'snapshot_a'});
+  assert.deepEqual(calls[10].body, {roomId: 'room_a'});
+  assert.deepEqual(calls[11].body,{roomId:'room_a',requestId:'window_a',opensAt:'2026-10-02T00:00:00.000Z',closesAt:'2026-10-02T00:10:00.000Z'});
+  for (const output of outputs) assert.deepEqual(output, {marker: 'server-result'});
 });

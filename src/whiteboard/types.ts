@@ -1,5 +1,17 @@
 export type RoomRole = 'host' | 'participant' | 'observer';
 
+export type PrivateWorkspaceInitialization = {
+  appId: string;
+  roomId: string;
+  assignmentId: string;
+  sourceSnapshotId: string | null;
+  status: 'pending' | 'running' | 'ready' | 'failed';
+  attemptCount: number;
+  checkpointId: string | null;
+  completedAt: string | null;
+  lastError: 'initialization_failed' | 'lease_attempts_exhausted' | null;
+};
+
 export type IssueRoomTokenInput = {
   roomId: string;
   userId: string;
@@ -153,3 +165,19 @@ export type AttachedRoomCourseware = {
   pageCount: number;
   duplicated: boolean;
 };
+
+export type PrivateRoomGrant = {generation: string; role: RoomRole; revoked: boolean};
+export type ChangePrivateRoomGrantInput = {
+  userId: string; requestId: string; expectedGeneration: string;
+} & ({action: 'grant'; role: RoomRole} | {action: 'revoke'; role?: never});
+export type PrivateRoomAccess = {privateRoom: true; grant: PrivateRoomGrant | null};
+export type FrozenRoomBoundary = {frozenSeq: string; closedAt: string};
+export type FrozenRoomSnapshot = {
+  appId: string; roomId: string; snapshotId: string; assignmentId: string;
+  frozenSeq: string; frozenAt: string; status: 'pending' | 'running' | 'ready' | 'failed';
+  attemptCount: number; objectKey: string; checksum: string; sizeBytes: string;
+  completedAt: string; lastError: string;
+};
+export type FrozenRoomSnapshotDownload = FrozenRoomSnapshot & {workspaceUrl: string; urlExpiresIn: number};
+
+export interface PrivateRoomWriteWindow {roomId:string;requestId:string;opensAt:string;closesAt:string}

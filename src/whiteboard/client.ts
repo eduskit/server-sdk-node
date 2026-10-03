@@ -10,6 +10,9 @@ import {
   type LocalTokenSigner,
 } from '../token.js';
 import type {
+  ChangePrivateRoomGrantInput, PrivateRoomGrant, PrivateRoomAccess, FrozenRoomBoundary,
+  FrozenRoomSnapshot, FrozenRoomSnapshotDownload,
+  PrivateWorkspaceInitialization, PrivateRoomWriteWindow,
   Capture,
   ConvertJob,
   CreateCaptureInput,
@@ -56,6 +59,42 @@ export class WhiteboardClient {
 class WhiteboardRoomsApi {
   constructor(private readonly http: HttpTransport) {}
 
+  schedulePrivateRoomWrites(roomId:string,requestId:string,opensAt:string,closesAt:string):Promise<PrivateRoomWriteWindow>{
+    return this.http.request('POST','/v1/rooms/private/write-window',{roomId,requestId,opensAt,closesAt});
+  }
+
+  initializePrivateWorkspace(roomId: string, assignmentId: string, sourceSnapshotId: string | null): Promise<PrivateWorkspaceInitialization> {
+    return this.http.request('POST', '/v1/rooms/private/initializations', {roomId, assignmentId, sourceSnapshotId});
+  }
+  getPrivateWorkspaceInitialization(roomId: string): Promise<PrivateWorkspaceInitialization> {
+    return this.http.request('POST', '/v1/rooms/private/initializations/query', {roomId});
+  }
+
+  provisionPrivateRoom(roomId: string, assignmentId: string): Promise<{roomId: string; assignmentId: string}> {
+    return this.http.request('POST', '/v1/rooms/private', {roomId, assignmentId});
+  }
+  changePrivateRoomGrant(roomId: string, input: ChangePrivateRoomGrantInput): Promise<PrivateRoomGrant> {
+    return this.http.request('POST', '/v1/rooms/private/grants', {...input, roomId});
+  }
+  getPrivateRoomAccess(roomId: string, userId: string): Promise<PrivateRoomAccess> {
+    return this.http.request('POST', '/v1/rooms/private/access/query', {roomId, userId});
+  }
+  issuePrivateRoomToken(roomId: string, input: Omit<IssueRoomTokenInput, 'roomId'>): Promise<RoomToken> {
+    return this.http.request('POST', '/v1/rooms/private/token', {...input, roomId});
+  }
+  sealPrivateRoom(roomId: string): Promise<FrozenRoomBoundary> {
+    return this.http.request('POST', '/v1/rooms/private/seal', {roomId});
+  }
+  createFrozenSnapshot(roomId: string, snapshotId: string): Promise<FrozenRoomSnapshot> {
+    return this.http.request('POST', '/v1/rooms/private/snapshots', {roomId, snapshotId});
+  }
+  getFrozenSnapshot(roomId: string, snapshotId: string): Promise<FrozenRoomSnapshot> {
+    return this.http.request('POST', '/v1/rooms/private/snapshots/query', {roomId, snapshotId});
+  }
+  getFrozenSnapshotDownload(roomId: string, snapshotId: string): Promise<FrozenRoomSnapshotDownload> {
+    return this.http.request('POST', '/v1/rooms/private/snapshots/download', {roomId, snapshotId});
+  }
+
   attachCourseware(
     roomId: string,
     input: AttachRoomCoursewareInput,
@@ -84,6 +123,7 @@ class WhiteboardAuthApi {
         app_id: this.signer.appId,
         room_id: roomId,
         role: input.role,
+        access_generation: null,
         source: 'server_sdk',
       },
       {
