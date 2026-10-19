@@ -65,7 +65,7 @@ const token = await sdk.client.auth.issueToken({
 const classroom = await sdk.client.classrooms.create({
   name: '一年级数学',
   startsAt: '2026-08-17T10:00:00.000Z',
-  endsAt: '2026-08-17T11:00:00.000Z',
+  durationMinutes: 60,
   teacherEduUserId: user.eduUserId,
 })
 
@@ -155,3 +155,26 @@ try {
 
 - [examples/classroom-quickstart.ts](examples/classroom-quickstart.ts)
 - [examples/whiteboard-quickstart.ts](examples/whiteboard-quickstart.ts)
+
+## Application business APIs
+
+Use the application-credential `client` for user lists and status, classroom queries and updates, courseware libraries, live assets, attendance, entry diagnostics, and activity logs. No console tenant token is required. See [the complete API reference](https://docs.eduskit.com/server-sdk/business-api/). New methods require a matching server-api deployment and a source SDK build.
+
+## Console management
+
+`ConsoleClient` exposes tenant management, authentication, applications, users, classrooms, courseware, live video, diagnostics, dashboards, and billing. Use the console-api URL and a tenant access token. Application-scoped methods require `appId`; app credentials are not sent by this client. This API is available in this source build.
+
+```typescript
+import { Eduskit } from '@eduskit/server-sdk';
+const sdk = new Eduskit({
+  consoleClient: {
+    baseUrl: process.env.EDU_CONSOLE_URL!,
+    accessToken: process.env.EDU_TENANT_ACCESS_TOKEN!,
+  },
+});
+const c = sdk.consoleClient;
+const apps = await c.apps.list();
+const users = await c.users.list(process.env.EDU_APP_ID!, { page: 1, pageSize: 20 });
+```
+
+Full API fields and workflows: [Console management](https://docs.eduskit.com/server-sdk/console/).

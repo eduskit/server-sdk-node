@@ -1,9 +1,11 @@
+import { ConsoleClient } from './console/client.js';
 import { ClassroomClient } from './classroom/client.js';
 import type { EduskitOptions, SideClientOptions } from './config.js';
 import { EduskitError } from './errors.js';
 import { WhiteboardClient } from './whiteboard/client.js';
 
 export class Eduskit {
+  private readonly console?: ConsoleClient;
   private readonly classroom?: ClassroomClient;
   private readonly whiteboard?: WhiteboardClient;
 
@@ -13,6 +15,7 @@ export class Eduskit {
       lang: options.lang,
       fetch: options.fetch,
     };
+    if (options.consoleClient) this.console = new ConsoleClient({ ...shared, ...options.consoleClient });
     if (options.client) {
       this.classroom = new ClassroomClient({ ...shared, ...options.client });
     }
@@ -22,6 +25,11 @@ export class Eduskit {
         ...options.whiteboardClient,
       });
     }
+  }
+
+  get consoleClient(): ConsoleClient {
+    if (!this.console) throw new EduskitError({ message: 'console client is not configured', errorCode: 'SDK_CLIENT_NOT_CONFIGURED', source: 'console' });
+    return this.console;
   }
 
   get client(): ClassroomClient {

@@ -17,6 +17,7 @@ export type SharedClientOptions = {
 export type EduskitOptions = SharedClientOptions & {
   client?: ClientCredentials;
   whiteboardClient?: ClientCredentials;
+  consoleClient?: import('./console/client.js').ConsoleClientOptions;
 };
 
 export type SideClientOptions = ClientCredentials & SharedClientOptions;

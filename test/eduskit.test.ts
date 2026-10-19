@@ -43,7 +43,7 @@ test('classroom semantic methods hit the right paths', async () => {
   await sdk.client.classrooms.create({
     name: 'math',
     startsAt: '2026-08-17T10:00:00.000Z',
-    endsAt: '2026-08-17T11:00:00.000Z',
+    durationMinutes: 60,
     teacherEduUserId: 'eu_t',
   });
   await sdk.client.classrooms.start('cls_1');

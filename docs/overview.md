@@ -1,13 +1,14 @@
 # SDK 总览
 
-面向客户自有后端的 B 端 Server SDK。一份依赖，两个 Client：
+面向客户自有后端的 B 端 Server SDK。一份依赖，三个 Client：
 
 | 属性 | 后端 | 默认地址 | 职责 |
 |------|------|----------|------|
+| `consoleClient` | edu `console-api` | `http://localhost:3101` | 租户会话、应用、用户、课堂、课件、直播、诊断、仪表盘、计费 |
 | `client` | edu `server-api` | `http://localhost:3112` | 注册 C 端用户、课堂/成员/课件/权限；本地签课堂 Token |
 | `whiteboardClient` | 白板 `server-api` | `http://localhost:3012` | 录制、截图、文件转码；本地签 Room Token |
 
-两侧 HTTP 鉴权头相同（`x-app-key` + `x-app-secret`），但 **baseUrl、appId 和凭证必须分侧配置**。以下两个方法完全本地执行：
+课堂与白板两侧 HTTP 鉴权头相同（`x-app-key` + `x-app-secret`），但 **baseUrl、appId 和凭证必须分侧配置**。以下两个方法完全本地执行：
 
 - 课堂 `auth.issueToken`：签发 C 端 `accessToken`，给 EduSDK 调 sdk-api `:3100`
 - 白板 `auth.issueRoomToken`：签发 Room Token，给 DrawKit 调 sdk-api `:3000`
@@ -16,7 +17,7 @@
 
 本地 Room Token 包含必填 `access_generation: null`，用于共享房间。私有教学作品需要由
 白板 auth-svc 从当前未撤销授权签发 generation；本地方法不查询授权，也不接受调用者指定
-私有 generation。缺失此字段的 JWT 会被服务端拒绝。私有作品的业务签发入口仍在开发。
+私有 generation。缺失此字段的 JWT 会被服务端拒绝。私有作品通过 `rooms.issuePrivateRoomToken` 获取当前授权凭证。
 
 ## 语言包
 
@@ -35,13 +36,15 @@
 - JSON 字段保持 **camelCase**（`eduUserId`、`originId`、`startsAt`），与 server-api 一致。
 - 成功响应拆信封 `{ code, message, data, traceId? }`，方法返回 **`data`**。
 - 白板成功体可能没有 `traceId`，SDK 会从响应头 `x-trace-id` 回填到 `lastTraceId`。
-- 失败抛 `EduskitError`：`status`、`errorCode`、`message`、`traceId`、`path`、`source`（`classroom` / `whiteboard`）。
+- 失败抛 `EduskitError`：`status`、`errorCode`、`message`、`traceId`、`path`、`source`（`classroom` / `whiteboard` / `console`）。
 - 未配置的一侧被访问时立即抛 `SDK_CLIENT_NOT_CONFIGURED`，不发请求。
-- 不在 HTTP Body 传 `appId`；配置中的 `appId` 用于本地共享房间签名及响应归属检查。私有房间 token 使用 HTTP 读取当前授权，见 [私有房间 API](api.md#私有教学白板与固定作品)。
+- 课堂与白板应用凭证客户端不在 HTTP Body 传 `appId`；配置中的 `appId` 用于本地共享房间签名及响应归属检查。私有房间 token 使用 HTTP 读取当前授权，见 [私有房间 API](api.md#私有教学白板与固定作品)。
 - v1 不做自动重试（`start` / `end` / 开录等非幂等）。
 
 ## 不做
 
 - 不调 C 端 sdk-api（课堂 `:3100`、白板 `:3000`）
-- 不调 console-api / admin-api
+- 不调 admin-api；console-api 由独立 `consoleClient` 调用，详见 [控制台管理](console.md)
 - 不封装 Webhook HMAC 验签
+
+应用内业务使用 `client` 的应用凭证接口，详见[应用业务接口](business.md)。`consoleClient` 用于需要租户会话的管理调用。

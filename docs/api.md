@@ -42,7 +42,7 @@
 | `role` | 否 | `teacher` / `assistant` / `student` / `inspector`，仅写入 JWT 提示 |
 | `expiresIn` | 否 | 秒，默认 86400 |
 
-**classrooms.create** 必填：`name`、`startsAt`、`endsAt`、`teacherEduUserId`。可选：`resolution`、`maxOnStage`、`videoOnly`、`recordMode`、`joinPolicy`、`studentEduUserIds`、`coursewareIds` 等，见 [edu-server-api.yaml](../spec/edu-server-api.yaml)。
+**classrooms.create** 必填：`name`、`startsAt`、`durationMinutes`（5–480 分钟）、`teacherEduUserId`。计划结束时间 `endsAt` 由服务端按 `startsAt + durationMinutes` 派生，创建时不传。响应仍返回 `endsAt` 与 `durationMinutes`。可选：`resolution`、`maxOnStage`（同时上台人数，1–16，默认 6）、`maxAudience`（同时在室人数，含台上。未传时实时课等于 `maxOnStage`，直播课等于 `maxOnStage + 1`；正数须不小于上台人数，直播课至少多 1，最大 100000；显式 0 会被拒绝）、`defaultOnStage`（学生和助教进课是否默认上台。未传时仅当在室人数等于上台人数为 true，否则 false；显式 false 始终允许）、`videoOnly`、`recordMode`、`joinPolicy`、`studentEduUserIds`、`coursewareIds` 等，见 [edu-server-api.yaml](../spec/edu-server-api.yaml)。
 
 **permissions.set** 必填：`permission`（`camera` / `microphone` / `whiteboard` / `screen_share` / `chat`）、`effect`（`grant` / `revoke`）、`operatorEduUserId`（课堂内老师或助教）。
 
@@ -111,3 +111,26 @@ Node.js 的 `whiteboardClient.rooms` 新增以下方法。Python、Java、Go、P
 
 
 私有文档初始化 ready 或取得 grant 不会自动允许新写入。使用 `schedulePrivateRoomWrites`（Python `schedule_private_room_writes`，Go `SchedulePrivateRoomWrites`）显式提供四个参数。opensAt/closesAt 必须是规范 UTC ISO 毫秒字符串，closesAt > opensAt；SDK 保留原字符串，不转换时区、不设置默认期限。相同 room/request/区间重发返回原回执，改变 requestId/区间冲突；不能延长、重开或给已 seal 房间首次开窗口。新工作版本的新房间需独立设置窗口。绘图、演示和客户端 checkpoint 由白板数据库时刻裁定 opensAt <= now < closesAt，截止拒绝新写入不依赖任务调度；纯回执重放、当前授权的读取和服务器基线/作品物化可继续。
+
+## 应用凭证媒体接口
+
+以下方法位于 `client`，使用现有应用凭证配置。
+
+| 方法 | HTTP | 说明 |
+| --- | --- | --- |
+| `classroomMedia.listWhiteboardCoursewares(input)` | `GET /v1/classrooms/whiteboard/coursewares` | 白板课件列表 |
+| `classroomMedia.addWhiteboardCourseware(input)` | `POST /v1/classrooms/whiteboard/coursewares` | 添加课件到白板 |
+| `classroomMedia.getLiveSource(input)` | `GET /v1/classrooms/live-source` | 直播源详情 |
+| `classroomMedia.setLiveSource(input)` | `PUT /v1/classrooms/live-source` | 设置直播源 |
+| `classroomMedia.issueLivePushCredential(input)` | `POST /v1/classrooms/live-source/push-credential` | 推流凭证 |
+| `classroomMedia.getLivePlayCredentials(input)` | `GET /v1/classrooms/live/play-credentials` | 直播播放凭证 |
+| `liveVideos.list(input)` | `GET /v1/live-videos` | 直播素材列表 |
+| `liveVideos.createUploadUrl(input)` | `POST /v1/live-videos/upload-url` | 直播视频上传地址 |
+| `liveVideos.create(input)` | `POST /v1/live-videos` | 创建直播素材 |
+| `liveVideos.remove(input)` | `DELETE /v1/live-videos/remove` | 删除直播素材 |
+
+## 控制台管理
+
+`consoleClient` 使用租户登录令牌提供 88 项管理接口，详见 [控制台接口](console.md)。
+
+应用内业务使用 `client` 的应用凭证接口，详见[应用业务接口](business.md)。`consoleClient` 用于需要租户会话的管理调用。

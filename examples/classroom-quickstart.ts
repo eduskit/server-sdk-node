@@ -21,11 +21,10 @@ const token = await sdk.client.auth.issueToken({
 });
 
 const startsAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-const endsAt = new Date(Date.now() + 75 * 60 * 1000).toISOString();
 const classroom = await sdk.client.classrooms.create({
   name: '一年级数学',
   startsAt,
-  endsAt,
+  durationMinutes: 60,
   teacherEduUserId: user.eduUserId,
 });
 

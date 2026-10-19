@@ -1,3 +1,4 @@
+import { LiveVideosApi, ClassroomMediaApi, ServerUsersApi, ServerClassroomsApi, CoursewaresApi, ActivityApi } from './media.js';
 import { withQuery } from '../http.js';
 import type { SideClientOptions } from '../config.js';
 import { encodePath, HttpTransport } from '../http.js';
@@ -32,6 +33,10 @@ import type {
 } from './types.js';
 
 export class ClassroomClient {
+  readonly coursewares: CoursewaresApi;
+  readonly activity: ActivityApi;
+  readonly liveVideos: LiveVideosApi;
+  readonly classroomMedia: ClassroomMediaApi;
   readonly users: ClassroomUsersApi;
   readonly auth: ClassroomAuthApi;
   readonly classrooms: ClassroomClassroomsApi;
@@ -40,6 +45,10 @@ export class ClassroomClient {
 
   constructor(options: SideClientOptions) {
     this.http = new HttpTransport({ ...options, source: 'classroom' });
+    this.coursewares = new CoursewaresApi(this.http);
+    this.activity = new ActivityApi(this.http);
+    this.liveVideos = new LiveVideosApi(this.http);
+    this.classroomMedia = new ClassroomMediaApi(this.http);
     this.users = new ClassroomUsersApi(this.http);
     this.auth = new ClassroomAuthApi({
       appId: options.appId,
@@ -50,13 +59,17 @@ export class ClassroomClient {
     this.app = new ClassroomAppApi(this.http);
   }
 
+  uploadFile(url: string, data: Uint8Array, contentType: string): Promise<void> {
+    return this.http.uploadFile(url, data, contentType);
+  }
+
   get lastTraceId(): string {
     return this.http.lastTraceId;
   }
 }
 
-class ClassroomUsersApi {
-  constructor(private readonly http: HttpTransport) {}
+class ClassroomUsersApi extends ServerUsersApi {
+  constructor(private readonly http: HttpTransport) { super(http); }
 
   register(input: RegisterEduUserInput): Promise<EduUser> {
     return this.http.request('POST', '/v1/users', input);
@@ -195,15 +208,50 @@ class ClassroomCoursewaresApi {
   }
 }
 
-class ClassroomClassroomsApi {
+class ClassroomEntryCodeApi {
+  constructor(private readonly http: HttpTransport) {}
+
+  list(classroomId: string) {
+    return this.http.request(
+      'GET',
+      withQuery('/v1/classrooms/entry-codes', { classroomId }),
+    );
+  }
+
+  issue(classroomId: string, input: Record<string, unknown>) {
+    return this.http.request('POST', '/v1/classrooms/entry-codes', {
+      ...input,
+      classroomId,
+    });
+  }
+
+  update(classroomId: string, input: Record<string, unknown>) {
+    return this.http.request('POST', '/v1/classrooms/entry-codes/update', {
+      ...input,
+      classroomId,
+    });
+  }
+
+  revoke(classroomId: string, entryCodeId: string) {
+    return this.http.request('POST', '/v1/classrooms/entry-codes/revoke', {
+      classroomId,
+      entryCodeId,
+    });
+  }
+}
+
+class ClassroomClassroomsApi extends ServerClassroomsApi {
   readonly members: ClassroomMembersApi;
   readonly permissions: ClassroomPermissionsApi;
   readonly coursewares: ClassroomCoursewaresApi;
+  readonly entryCode: ClassroomEntryCodeApi;
 
   constructor(private readonly http: HttpTransport) {
+    super(http);
     this.members = new ClassroomMembersApi(http);
     this.permissions = new ClassroomPermissionsApi(http);
     this.coursewares = new ClassroomCoursewaresApi(http);
+    this.entryCode = new ClassroomEntryCodeApi(http);
   }
 
   create(input: CreateClassroomInput): Promise<Classroom> {

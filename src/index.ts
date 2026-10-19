@@ -17,3 +17,8 @@ export type {
 } from './config.js';
 export type * from './classroom/types.js';
 export type * from './whiteboard/types.js';
+
+export { ConsoleClient } from './console/client.js';
+export type { ConsoleClientOptions } from './console/client.js';
+export type * as ConsoleModels from './console/models.js';
+export type * as BusinessModels from './models.js';

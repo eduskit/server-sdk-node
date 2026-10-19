@@ -44,18 +44,32 @@ export class HttpTransport {
     this.source = config.source;
   }
 
+  async uploadFile(url: string, data: Uint8Array, contentType: string): Promise<void> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await this.fetchImpl(url, { method: 'PUT', headers: { 'content-type': contentType }, body: new Uint8Array(data).buffer, signal: controller.signal, redirect: 'error' });
+      if (!response.ok) throw new EduskitError({ message: `upload failed (HTTP ${response.status})`, status: response.status, errorCode: 'SDK_UPLOAD_FAILED', source: this.source });
+      await response.arrayBuffer();
+    } catch (error) {
+      if (error instanceof EduskitError) throw error;
+      throw new EduskitError({ message: error instanceof Error ? error.message : String(error), errorCode: error instanceof Error && error.name === 'AbortError' ? 'SDK_TIMEOUT' : 'SDK_NETWORK_ERROR', source: this.source });
+    } finally { clearTimeout(timer); }
+  }
+
   async request<T>(
     method: string,
     path: string,
     body?: unknown,
+    extraHeaders: Record<string, string> = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const traceId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
     const headers: Record<string, string> = {
       'content-type': 'application/json',
       accept: 'application/json',
-      'x-app-key': this.appKey,
-      'x-app-secret': this.appSecret,
+      ...(this.source === 'console' ? {} : { 'x-app-key': this.appKey, 'x-app-secret': this.appSecret }),
+      ...extraHeaders,
       'x-lang': this.lang,
       'x-trace-id': traceId,
     };
@@ -122,7 +136,7 @@ export class HttpTransport {
       });
     }
 
-    return (payload.data ?? payload) as T;
+    return (Object.prototype.hasOwnProperty.call(payload, 'data') ? payload.data : payload) as T;
   }
 }
 

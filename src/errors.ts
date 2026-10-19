@@ -1,4 +1,4 @@
-export type EduskitSource = 'classroom' | 'whiteboard';
+export type EduskitSource = 'classroom' | 'whiteboard' | 'console';
 
 export type EduskitErrorInit = {
   message: string;
